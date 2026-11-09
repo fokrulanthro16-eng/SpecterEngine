@@ -1,0 +1,675 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SpecterEngine | Autonomous Cross-Chain Airlock Cockpit</title>
+  <style>
+    :root {
+      --bg: #07090e;
+      --card-bg: rgba(13, 17, 27, 0.85);
+      --border: rgba(0, 255, 204, 0.15);
+      --primary: #00ffcc;
+      --primary-glow: rgba(0, 255, 204, 0.4);
+      --danger: #ff0055;
+      --danger-glow: rgba(255, 0, 85, 0.5);
+      --warning: #ffaa00;
+      --purple: #aa00ff;
+      --text: #e0e6ed;
+      --text-dim: #798b9e;
+      --font-mono: 'SF Mono', 'Fira Code', 'Consolas', monospace;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Top Navigation HUD */
+    header {
+      background: rgba(10, 14, 23, 0.95);
+      border-bottom: 1px solid var(--border);
+      padding: 12px 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      backdrop-filter: blur(10px);
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-badge {
+      background: linear-gradient(135deg, var(--primary), var(--purple));
+      color: #000;
+      font-weight: 900;
+      font-size: 14px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      letter-spacing: 1px;
+    }
+
+    .brand h1 {
+      font-size: 18px;
+      font-weight: 700;
+      letter-spacing: 0.5px;
+      color: #fff;
+    }
+
+    .brand span {
+      font-size: 12px;
+      color: var(--primary);
+      text-transform: uppercase;
+      margin-left: 6px;
+      font-family: var(--font-mono);
+    }
+
+    .nav-status {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 13px;
+      font-family: var(--font-mono);
+    }
+
+    .status-pill {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 4px 10px;
+      border-radius: 20px;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .status-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--primary);
+      box-shadow: 0 0 8px var(--primary);
+    }
+
+    .status-dot.danger {
+      background: var(--danger);
+      box-shadow: 0 0 10px var(--danger);
+      animation: pulse 1s infinite alternate;
+    }
+
+    @keyframes pulse {
+      from { transform: scale(0.9); opacity: 0.6; }
+      to { transform: scale(1.3); opacity: 1; }
+    }
+
+    /* Main Container */
+    main {
+      padding: 20px 24px;
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+      flex: 1;
+    }
+
+    /* Cards */
+    .card {
+      background: var(--card-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 16px;
+      backdrop-filter: blur(8px);
+    }
+
+    .card-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 14px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+      padding-bottom: 8px;
+    }
+
+    .card-title {
+      font-size: 14px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--text-dim);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .card-title-icon {
+      color: var(--primary);
+    }
+
+    /* Metrics Grid */
+    .metrics-bar {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+
+    .metric-box {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 6px;
+      padding: 12px;
+    }
+
+    .metric-label {
+      font-size: 11px;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      margin-bottom: 4px;
+      font-family: var(--font-mono);
+    }
+
+    .metric-value {
+      font-size: 20px;
+      font-weight: 700;
+      font-family: var(--font-mono);
+      color: #fff;
+    }
+
+    .metric-value.highlight {
+      color: var(--primary);
+    }
+
+    .metric-value.danger {
+      color: var(--danger);
+      text-shadow: 0 0 10px var(--danger-glow);
+    }
+
+    /* Canvas Oscilloscope */
+    .oscilloscope-container {
+      position: relative;
+      height: 340px;
+      width: 100%;
+      background: #020408;
+      border: 1px solid rgba(0, 255, 204, 0.2);
+      border-radius: 6px;
+      overflow: hidden;
+      box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    .canvas-overlay {
+      position: absolute;
+      top: 10px;
+      left: 14px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: rgba(255, 255, 255, 0.5);
+      pointer-events: none;
+    }
+
+    .threshold-badge {
+      position: absolute;
+      right: 14px;
+      top: 36px;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--danger);
+      background: rgba(255, 0, 85, 0.1);
+      padding: 2px 6px;
+      border: 1px solid var(--danger);
+      border-radius: 4px;
+    }
+
+    /* Side Panel Controls & Feeds */
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .btn {
+      width: 100%;
+      padding: 12px 16px;
+      border: none;
+      border-radius: 6px;
+      font-family: var(--font-mono);
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+    }
+
+    .btn-exploit {
+      background: linear-gradient(135deg, #ff0055, #ff5500);
+      color: #fff;
+      box-shadow: 0 0 15px rgba(255, 0, 85, 0.4);
+    }
+
+    .btn-exploit:hover {
+      box-shadow: 0 0 25px rgba(255, 0, 85, 0.7);
+      transform: translateY(-1px);
+    }
+
+    .btn-reset {
+      background: rgba(255, 255, 255, 0.08);
+      color: var(--text);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+
+    .btn-reset:hover {
+      background: rgba(255, 255, 255, 0.15);
+    }
+
+    /* Quarantine Ledger Table */
+    .ledger-container {
+      margin-top: 20px;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-family: var(--font-mono);
+      font-size: 12px;
+    }
+
+    th {
+      text-align: left;
+      padding: 10px 12px;
+      color: var(--text-dim);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      font-size: 11px;
+      text-transform: uppercase;
+    }
+
+    td {
+      padding: 10px 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+      color: var(--text);
+    }
+
+    .badge-quarantine {
+      background: rgba(255, 0, 85, 0.15);
+      color: var(--danger);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid var(--danger);
+      font-weight: 700;
+    }
+
+    .cadence-badge {
+      display: inline-block;
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      margin-right: 6px;
+    }
+
+    .cadence-op { background: #00ffcc; box-shadow: 0 0 6px #00ffcc; }
+    .cadence-reactive { background: #aa00ff; box-shadow: 0 0 6px #aa00ff; }
+  </style>
+</head>
+<body>
+
+  <!-- Top Navigation HUD -->
+  <header>
+    <div class="brand">
+      <div class="logo-badge">SE-01</div>
+      <h1>SpecterEngine</h1>
+      <span>Terminal Telemetry Cockpit</span>
+    </div>
+    <div class="nav-status">
+      <div class="status-pill">
+        <span class="cadence-badge cadence-op" id="baseIndicator"></span>
+        <span>Base Sepolia: #<span id="baseBlock">18942110</span> (200ms)</span>
+      </div>
+      <div class="status-pill">
+        <span class="cadence-badge cadence-reactive" id="reactiveIndicator"></span>
+        <span>Reactive Omni: #<span id="reactiveBlock">1420850</span> (1.0s)</span>
+      </div>
+      <div class="status-pill">
+        <div class="status-dot" id="connDot"></div>
+        <span id="connStatus">CONNECTING</span>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Grid -->
+  <main>
+    <!-- Left: Oscilloscope & Ledger -->
+    <div style="display: flex; flex-direction: column; gap: 20px;">
+      
+      <!-- Metrics Strip -->
+      <div class="metrics-bar">
+        <div class="metric-box">
+          <div class="metric-label">Autonomous Reaction</div>
+          <div class="metric-value highlight">14.54 ms</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">ONNX Tensor Latency</div>
+          <div class="metric-value highlight">0.389 ms</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Continuous Threat (S_t)</div>
+          <div class="metric-value" id="liveThreatScore">0.0520</div>
+        </div>
+        <div class="metric-box">
+          <div class="metric-label">Execution Airlock</div>
+          <div class="metric-value" id="airlockState">ARMED</div>
+        </div>
+      </div>
+
+      <!-- 60 FPS HTML5 Canvas Oscilloscope -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">⚡</span>
+            Live High-Frequency Tensor Oscilloscope (60 FPS)
+          </div>
+          <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);">
+            Channel 1: Anomaly Score S_t | Channel 2: Slippage Volatility
+          </span>
+        </div>
+
+        <div class="oscilloscope-container">
+          <div class="canvas-overlay">SAMPLING RATE: 60Hz | SLIDING WINDOW: 50 TICKS</div>
+          <div class="threshold-badge">THRESHOLD S_t >= 0.8800</div>
+          <canvas id="scopeCanvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Quarantine Event Ledger -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <span class="card-title-icon">🛡</span>
+            Airlock Execution Ledger
+          </div>
+          <span style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim);" id="incidentCount">
+            0 Incidents Logged
+          </span>
+        </div>
+
+        <div class="ledger-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Incident Hash</th>
+                <th>Target Pool</th>
+                <th>Trigger Source</th>
+                <th>Risk Score</th>
+                <th>Reaction Time</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody id="ledgerBody">
+              <tr>
+                <td colspan="7" style="text-align: center; color: var(--text-dim); padding: 24px;">
+                  Monitoring live event stream... No active quarantines recorded.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Right: Controls & Pool State -->
+    <div class="side-panel">
+      <!-- Controls -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Exploit Injection</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button class="btn btn-exploit" id="btnExploit" onclick="triggerExploit()">
+            <span>⚡</span> TRIGGER FLASH LOAN ATTACK
+          </button>
+          <button class="btn btn-reset" onclick="resetAirlock()">
+            <span>↺</span> DISENGAGE AIRLOCK (RESET)
+          </button>
+        </div>
+      </div>
+
+      <!-- Pool State Summary -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Monitored Pool Reserves</div>
+        </div>
+        <div style="display: flex; flex-direction: column; gap: 12px; font-family: var(--font-mono);">
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-dim);">Token0 (WETH):</span>
+            <span id="poolWeth" style="font-weight: 700;">100.00 ETH</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-dim);">Token1 (USDC):</span>
+            <span id="poolUsdc" style="font-weight: 700;">300,000.00 USDC</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-dim);">Nominal Reserve:</span>
+            <span>100 ETH / 300K USDC</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-dim);">Detection Threshold:</span>
+            <span style="color: var(--warning);">500 BPS (5.0%)</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Algorithmic Formulation Box -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Scoring Formulation</div>
+        </div>
+        <div style="font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); line-height: 1.6;">
+          <p><strong style="color: var(--primary);">S_t = α·(ΔR/R) + β·(∇Slip/σ) + γ·(G/Ḡ)</strong></p>
+          <p style="margin-top: 6px;">• Weight α = 0.45 (Reserve Shift)</p>
+          <p>• Weight β = 0.35 (Slippage Vol)</p>
+          <p>• Weight γ = 0.20 (Priority Fee)</p>
+          <p style="margin-top: 6px; color: var(--text);">EIP-712 Attestation triggered instantly when <strong>S_t ≥ 0.8800</strong>.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script>
+    // Canvas Oscilloscope setup
+    const canvas = document.getElementById('scopeCanvas');
+    const ctx = canvas.getContext('2d');
+
+    function resizeCanvas() {
+      canvas.width = canvas.parentElement.clientWidth;
+      canvas.height = canvas.parentElement.clientHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    const BUFFER_SIZE = 200;
+    const scoreBuffer = new Array(BUFFER_SIZE).fill(0.05);
+    const slipBuffer = new Array(BUFFER_SIZE).fill(5.0);
+
+    let isQuarantined = false;
+
+    // Connect to WebSocket
+    const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+    const wsUrl = `${protocol}//${window.location.host}`;
+    let socket;
+
+    function connectWS() {
+      socket = new WebSocket(wsUrl);
+
+      socket.onopen = () => {
+        document.getElementById('connStatus').innerText = 'LINKED (60Hz)';
+        document.getElementById('connDot').className = 'status-dot';
+      };
+
+      socket.onclose = () => {
+        document.getElementById('connStatus').innerText = 'RECONNECTING';
+        document.getElementById('connDot').className = 'status-dot danger';
+        setTimeout(connectWS, 1500);
+      };
+
+      socket.onmessage = (event) => {
+        const msg = JSON.parse(event.data);
+
+        if (msg.type === 'OSCILLOSCOPE_TICK') {
+          scoreBuffer.shift();
+          scoreBuffer.push(msg.score);
+
+          slipBuffer.shift();
+          slipBuffer.push(msg.slippage);
+
+          document.getElementById('liveThreatScore').innerText = msg.score.toFixed(4);
+          if (msg.score >= 0.88) {
+            document.getElementById('liveThreatScore').className = 'metric-value danger';
+          } else {
+            document.getElementById('liveThreatScore').className = 'metric-value';
+          }
+        } else if (msg.type === 'BASE_SEPOLIA_BLOCK') {
+          document.getElementById('baseBlock').innerText = msg.blockNumber;
+        } else if (msg.type === 'REACTIVE_BLOCK') {
+          document.getElementById('reactiveBlock').innerText = msg.blockNumber;
+        } else if (msg.type === 'THREAT_SPIKE') {
+          isQuarantined = true;
+          document.getElementById('airlockState').innerText = 'QUARANTINED';
+          document.getElementById('airlockState').className = 'metric-value danger';
+          document.getElementById('connDot').className = 'status-dot danger';
+
+          if (msg.reserves) {
+            document.getElementById('poolWeth').innerText = `${msg.reserves.reserve0.toFixed(2)} ETH`;
+          }
+
+          if (msg.incident) {
+            addIncidentToLedger(msg.incident);
+          }
+        } else if (msg.type === 'AIRLOCK_STATUS') {
+          isQuarantined = msg.isQuarantined;
+          if (!isQuarantined) {
+            document.getElementById('airlockState').innerText = 'ARMED';
+            document.getElementById('airlockState').className = 'metric-value';
+            document.getElementById('poolWeth').innerText = '100.00 ETH';
+          }
+        } else if (msg.type === 'INITIAL_STATE') {
+          document.getElementById('baseBlock').innerText = msg.baseSepoliaBlock;
+          document.getElementById('reactiveBlock').innerText = msg.reactiveBlock;
+          if (msg.quarantineHistory && msg.quarantineHistory.length > 0) {
+            msg.quarantineHistory.forEach(addIncidentToLedger);
+          }
+        }
+      };
+    }
+
+    connectWS();
+
+    function triggerExploit() {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ action: 'TRIGGER_EXPLOIT' }));
+      }
+    }
+
+    function resetAirlock() {
+      if (socket && socket.readyState === WebSocket.OPEN) {
+        socket.send(JSON.stringify({ action: 'RESET_AIRLOCK' }));
+      }
+    }
+
+    function addIncidentToLedger(inc) {
+      const tbody = document.getElementById('ledgerBody');
+      if (tbody.children[0] && tbody.children[0].children.length === 1) {
+        tbody.innerHTML = '';
+      }
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${inc.timestamp}</td>
+        <td style="color: var(--primary);">${inc.incidentHash}</td>
+        <td>${inc.pool.slice(0, 8)}...</td>
+        <td>${inc.triggerSource}</td>
+        <td style="color: var(--danger); font-weight: 700;">${inc.riskScore}</td>
+        <td>${inc.latencyMs} ms</td>
+        <td><span class="badge-quarantine">QUARANTINED</span></td>
+      `;
+      tbody.prepend(tr);
+    }
+
+    // 60 FPS Canvas Render Loop
+    function render() {
+      requestAnimationFrame(render);
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.fillStyle = '#020408';
+      ctx.fillRect(0, 0, w, h);
+
+      // Draw Grid
+      ctx.strokeStyle = 'rgba(0, 255, 204, 0.05)';
+      ctx.lineWidth = 1;
+      const gridX = 30;
+      const gridY = 30;
+      for (let x = 0; x < w; x += gridX) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, h);
+        ctx.stroke();
+      }
+      for (let y = 0; y < h; y += gridY) {
+        ctx.beginPath();
+        ctx.moveTo(0, y);
+        ctx.lineTo(w, y);
+        ctx.stroke();
+      }
+
+      // Draw 0.88 Threat Threshold Line
+      const threshY = h - (0.88 * (h - 40)) - 20;
+      ctx.strokeStyle = 'rgba(255, 0, 85, 0.6)';
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath();
+      ctx.moveTo(0, threshY);
+      ctx.lineTo(w, threshY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Draw Waveform: Anomaly Threat Metric S_t
+      ctx.lineWidth = 2.5;
+      ctx.strokeStyle = isQuarantined ? '#ff0055' : '#00ffcc';
+      ctx.shadowColor = isQuarantined ? 'rgba(255, 0, 85, 0.8)' : 'rgba(0, 255, 204, 0.6)';
+      ctx.shadowBlur = isQuarantined ? 15 : 8;
+
+      ctx.beginPath();
+      const step = w / (BUFFER_SIZE - 1);
+      for (let i = 0; i < BUFFER_SIZE; i++) {
+        const val = Math.min(1.0, scoreBuffer[i]);
+        const y = h - (val * (h - 40)) - 20;
+        const x = i * step;
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+      ctx.shadowBlur = 0;
+    }
+
+    render();
+  </script>
+</body>
+</html>

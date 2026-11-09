@@ -1,0 +1,22 @@
+{
+  "name": "specter-engine",
+  "version": "1.0.0",
+  "description": "Sub-second autonomous threat ingestion & execution airlock",
+  "scripts": {
+    "compile": "python scripts/compile.py",
+    "simulate": "python scripts/simulate_exploit.py",
+    "sentinel": "python core-sentinel/engine.py"
+  },
+  "keywords": [
+    "reactive-network",
+    "base-sepolia",
+    "solidity",
+    "eip-712",
+    "circuit-breaker"
+  ],
+  "author": "SpecterEngine Security Architecture Team",
+  "license": "MIT",
+  "dependencies": {
+    "ws": "^8.22.2"
+  }
+}
