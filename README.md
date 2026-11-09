@@ -18,6 +18,30 @@
 
 ---
 
+## 🎬 Official Video Walkthrough
+
+The complete high-resolution demo video is synchronized and available at **[`demo/specter_engine_demo.mp4`](demo/specter_engine_demo.mp4)**:
+
+- **Duration**: **4.05 minutes** ($242.92\text{ seconds}$)
+- **Resolution**: **1080p60** ($1920\times 1080$ @ 60 FPS)
+- **Audio**: English US Christopher Neural Voiceover with zero latency desync
+- **Encoding**: H.264 / AAC Web-Optimized (`+faststart`)
+
+### Video Chapters:
+1. **Part 1 (0:00 - 0:55)**: Rollup Temporal Asymmetry & Vulnerability Window (Base Sepolia 200ms blocks vs 12–60s keeper latency).
+2. **Part 2 (0:55 - 1:57)**: Four-Tier Architecture, Mathematical Tensor Formulation $\mathcal{S}_t$, and Sub-Millisecond ONNX Micro-Inference ($0.389\text{ ms}$).
+3. **Part 3 (1:57 - 3:12)**: Live 60 FPS Telemetry Oscilloscope Exploit Execution, Threat Spike, and $14.54\text{ ms}$ Cross-Chain Quarantine Callback.
+4. **Part 4 (3:12 - 4:03)**: On-Chain Airlock Execution Ledger, 100% Capital Preservation Verification, and DoraHacks Submission Metadata.
+
+To reproduce or regenerate the video from scratch:
+```bash
+python scripts/generate_audio.py   # Edge-TTS audio synthesis
+python scripts/record_demo.py      # Playwright 60 FPS headless visual capture
+python scripts/build_video.py      # FFmpeg compositing and assembly
+```
+
+---
+
 ## 📑 Table of Contents
 - [Architectural Context & Time Dynamics](#architectural-context--time-dynamics)
 - [System Architecture & Dataflow](#system-architecture--dataflow)

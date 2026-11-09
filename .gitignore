@@ -21,6 +21,11 @@ cache/
 out/
 broadcast/
 
+# Video Build Cache
+demo/raw_recordings/
+demo/stitched_segments/
+demo/temp*/
+
 # OS Artifacts
 .DS_Store
 Thumbs.db
